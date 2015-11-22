@@ -1,0 +1,95 @@
+---
+title: "Install and Run SparkR - easy way"
+output: html_document
+---
+
+## Requirement
+
+First, you must have R and java installed. This is a bit 
+out the scope of this note, but you can find lots of good tutorials that
+cover this. If you have problems please let us know (you can find
+email address below). 
+
+Next, you have to see if you can install R interface to java. this can
+be done by calling
+
+```
+install.packages("rJava")
+```
+
+Depending or your Operating System this can produce an error, and some
+extra action would be required. Please google something like `rJava
+install error ubuntu` etc. Again please let us know if you get stuck.
+
+
+You can also install few packages we may use in presentation. Simply call:
+
+```
+install.packages(c("rmarkdown", "ggplot2", "pipeR", "whisker", "data.table", "reshape2"))
+```
+
+* `rmarkdown`: package that makes possible to create this document
+* `ggplot2`: popular graphing package,
+* `pipeR`: nicer functions chaining
+* `whisker`: it's Movember
+* `data.table`, `reshape2`: an alternative for "data.frame"
+
+## Downloading Spark
+
+The easiest way to downloading spark is getting pre-bulid version from
+[http://spark.apache.org/downloads.html]. 
+
+<center>
+
+<img src="pic3.png" height="200px"/> 
+
+</center>
+
+## SparkR test drive
+
+The way we use SparkR here is far from being en example of _best
+practice_. Not only because it does not run on more than one computer,
+but also because we isolate the SparkR package from other packages by
+hardcoding library path. This should help you set up you Spark(R) fast
+for test drive.
+
+Lets say you have downloaded it to the folder
+
+`/home/bartek/programs/spark-1.5.2-bin-hadoop2.6`
+
+So every time you see this path please change it to the one you have
+(windows users have to probably change also slashes `/` to backslashes `\`)
+
+
+Then try to run the following code:
+```{r}
+Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:1.2.0" "sparkr-shell"')
+library(SparkR, lib.loc = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6/R/lib/")
+sc <- sparkR.init(master = "local", sparkHome = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6")
+sqlContext <- sparkRSQL.init(sc)
+
+library('pipeR')
+library('ggplot2')
+
+df <- createDataFrame(sqlContext, mtcars)
+model <- glm(mpg ~ wt, data = df, family = "gaussian")
+summary(model)
+predictions <- predict(model, newData = df)
+class(predictions)
+
+
+predictions %>>%
+  select("wt", "mpg", "prediction") %>>%
+  collect %>>%
+  ggplot() + geom_point(aes(wt, prediction - mpg))  +
+  geom_hline(xintercept=0) + theme_bw()
+```
+
+
+```{r}
+sparkR.stop()
+```
+
+## Contact
+
+bartekskorulski@gmail.com

@@ -6,9 +6,11 @@ output: html_document
 ## Requirement
 
 First, you must have R and java installed. This is a bit 
-out the scope of this note, but you can find lots of good tutorials that
-cover this. If you have problems please let us know (you can find
-email address below). 
+out the scope of this note, but Let me cover few thinigs.
+
+### R
+
+
 
 Next, you have to see if you can install R interface to java. this can
 be done by calling
@@ -19,18 +21,21 @@ install.packages("rJava")
 
 Depending or your Operating System this can produce an error, and some
 extra action would be required. Please google something like `rJava
-install error ubuntu` etc. Again please let us know if you get stuck.
+install error ubuntu` etc. 
 
+### R and rJava on Mac
+
+https://github.com/snowflakedb/dplyr-snowflakedb/wiki/Configuring-R-rJava-RJDBC-on-Mac-OS-X
 
 You can also install few packages we may use in presentation. Simply call:
 
 ```
-install.packages(c("rmarkdown", "ggplot2", "pipeR", "whisker", "data.table", "reshape2"))
+install.packages(c("rmarkdown", "ggplot2", "magrittr", "whisker", "data.table", "reshape2"))
 ```
 
 * `rmarkdown`: package that makes possible to create this document
 * `ggplot2`: popular graphing package,
-* `pipeR`: nicer functions chaining
+* `magrittr`: nicer functions chaining
 * `whisker`: it's Movember
 * `data.table`, `reshape2`: an alternative for "data.frame"
 
@@ -45,6 +50,9 @@ The easiest way to downloading spark is getting pre-bulid version from
 
 </center>
 
+### Mac
+https://www.r-bloggers.com/six-lines-to-install-and-start-sparkr-on-mac-os-x-yosemite/
+
 ## SparkR test drive
 
 The way we use SparkR here is far from being en example of _best
@@ -53,17 +61,41 @@ but also because we isolate the SparkR package from other packages by
 hardcoding library path. This should help you set up you Spark(R) fast
 for test drive.
 
-Lets say you have downloaded it to the folder
+Lets say you have downloaded and uncompress it to the folder
 
-`/home/bartek/programs/spark-1.5.2-bin-hadoop2.6`
+`/Users/bartek/programs/spark-2.3.0-bin-hadoop2.7`
 
 So every time you see this path please change it to the one you have
-(windows users have to probably change also slashes `/` to backslashes `\`)
+(windows users have to probably change also slashes `/` to backslashes `\` and add something like `/C/`)
 
 
 Then try to run the following code:
 ```{r}
-Sys.setenv('SPARKR_SUBMIT_ARGS'='"--packages" "com.databricks:spark-csv_2.10:1.2.0" "sparkr-shell"')
+#spark_path <- '~/programs/spark-2.3.0-bin-hadoop2.7'
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
+
+spark_path <- strsplit(system("brew info apache-spark",intern=T)[4],' ')[[1]][1] 
+if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
+  Sys.setenv(SPARK_HOME = spark_path)
+}
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "libexec", "R", "lib")))
+sparkR.session(master = "local[*]", sparkConfig = list(spark.driver.memory = "2g"))
+```
+
+```{r}
+#mac:
+spark_path <- strsplit(system("brew info apache-spark",intern=T)[4],' ')[[1]][1] 
+.libPaths(c(file.path(spark_path,"libexec", "R", "lib"), .libPaths())) # Navigate to SparkR folder
+library(SparkR)
+sparkR.session(master = "local[*]", sparkConfig = list(spark.driver.memory = "2g"))
+```
+
+```{r}
+sc <- sparkR.init()
+sqlContext <- sparkRSQL.init(sc)
+```
+
+```{r}
 library(SparkR, lib.loc = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6/R/lib/")
 sc <- sparkR.init(master = "local", sparkHome = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6")
 sqlContext <- sparkRSQL.init(sc)

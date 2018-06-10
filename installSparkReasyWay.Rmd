@@ -6,15 +6,63 @@ output: html_document
 ## Requirement
 
 First, you must have R and java installed. This is a bit 
-out the scope of this note, but Let me cover few thinigs.
+out the scope of this note, but Let me cover few things.
+
+On Ubuntu:
+```
+sudo add-apt-repository ppa:webupd8team/jav
+sudo apt update
+sudo apt install oracle-java8-installer
+```
+
+You can manage java version by calling
+```
+sudo update-alternatives --config java
+```
+and editing:
+```
+sudo nano /etc/environment
+```
+by adding line
+```
+JAVA_HOME="/usr/lib/jvm/java-8-oracle"
+```
+Then test it by calling
+```
+source /etc/environment
+echo $JAVA_HOME
+java -version
+```
 
 ### R
 
+https://launchpad.net/~marutter/+archive/ubuntu/c2d4u
 
+```
+sudo add-apt-repository ppa:marutter/c2d4u
+sudo apt update
+sudo apt install r-base r-base-dev
+```
 
-Next, you have to see if you can install R interface to java. this can
+### Rstudio
+
+```
+sudo apt-get install gdebi-core
+
+wget https://download1.rstudio.org/rstudio-xenial-1.1.453-amd64.deb
+sudo gdebi rstudio-xenial-1.1.453-amd64.deb
+rm rstudio-xenial-1.1.453-amd64.deb
+```
+
+### rJava
+
+Next, you have to see if you can install R interface to java. This can
 be done by calling
+```
+sudo R CMD javareconf
+```
 
+Now you can install it:
 ```
 install.packages("rJava")
 ```
@@ -23,14 +71,24 @@ Depending or your Operating System this can produce an error, and some
 extra action would be required. Please google something like `rJava
 install error ubuntu` etc. 
 
+Test it in R by calling, for example:
+```
+library(rJava)
+.jinit()
+Double <- J("java.lang.Double")
+d <- new(Double, "10.2")
+```
+
 ### R and rJava on Mac
 
 https://github.com/snowflakedb/dplyr-snowflakedb/wiki/Configuring-R-rJava-RJDBC-on-Mac-OS-X
 
+### Other packages
+
 You can also install few packages we may use in presentation. Simply call:
 
 ```
-install.packages(c("rmarkdown", "ggplot2", "magrittr", "whisker", "data.table", "reshape2"))
+install.packages(c("rmarkdown", "ggplot2", "magrittr", "whisker", "data.table"))
 ```
 
 * `rmarkdown`: package that makes possible to create this document
@@ -63,7 +121,7 @@ for test drive.
 
 Lets say you have downloaded and uncompress it to the folder
 
-`/Users/bartek/programs/spark-2.3.0-bin-hadoop2.7`
+`/home/bartek/programs/spark-2.3.0-bin-hadoop2.7`
 
 So every time you see this path please change it to the one you have
 (windows users have to probably change also slashes `/` to backslashes `\` and add something like `/C/`)
@@ -71,55 +129,32 @@ So every time you see this path please change it to the one you have
 
 Then try to run the following code:
 ```{r}
-#spark_path <- '~/programs/spark-2.3.0-bin-hadoop2.7'
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
-
-spark_path <- strsplit(system("brew info apache-spark",intern=T)[4],' ')[[1]][1] 
+spark_path <- '/home/bartek/programs/spark-2.3.0-bin-hadoop2.7'
 if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
   Sys.setenv(SPARK_HOME = spark_path)
 }
-library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "libexec", "R", "lib")))
+library(SparkR, lib.loc = c(file.path(Sys.getenv("SPARK_HOME"), "R", "lib")))
 sparkR.session(master = "local[*]", sparkConfig = list(spark.driver.memory = "2g"))
 ```
 
-```{r}
-#mac:
-spark_path <- strsplit(system("brew info apache-spark",intern=T)[4],' ')[[1]][1] 
-.libPaths(c(file.path(spark_path,"libexec", "R", "lib"), .libPaths())) # Navigate to SparkR folder
-library(SparkR)
-sparkR.session(master = "local[*]", sparkConfig = list(spark.driver.memory = "2g"))
-```
 
 ```{r}
-sc <- sparkR.init()
-sqlContext <- sparkRSQL.init(sc)
-```
-
-```{r}
-library(SparkR, lib.loc = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6/R/lib/")
-sc <- sparkR.init(master = "local", sparkHome = "/home/bartek/programs/spark-1.5.2-bin-hadoop2.6")
-sqlContext <- sparkRSQL.init(sc)
-
-library('pipeR')
+library('magrittr')
 library('ggplot2')
 
-df <- createDataFrame(sqlContext, mtcars)
+df <- as.DataFrame(mtcars)
 model <- glm(mpg ~ wt, data = df, family = "gaussian")
 summary(model)
 predictions <- predict(model, newData = df)
 class(predictions)
-
-
-predictions %>>%
-  select("wt", "mpg", "prediction") %>>%
-  collect %>>%
-  ggplot() + geom_point(aes(wt, prediction - mpg))  +
-  geom_hline(xintercept=0) + theme_bw()
 ```
 
-
 ```{r}
-sparkR.stop()
+predictions %>%
+  select("wt", "mpg", "prediction") %>%
+  collect %>%
+  ggplot() + geom_point(aes(wt, prediction - mpg))  +
+  geom_hline(yintercept=0) + theme_bw()
 ```
 
 ## Contact
